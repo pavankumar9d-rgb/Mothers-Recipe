@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5188,
-    strictPort: true,
+    strictPort: false,
     open: false,
     watch: {
       ignored: ['**/*.md', '**/.git/**', '**/dist/**', '**/node_modules/**']

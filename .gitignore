@@ -33,3 +33,10 @@ venv/
 brain/
 *.log
 scratch/
+
+# Internal development scripts & documentation prompts
+scripts/
+MOTHERS_RECIPE_*.md
+DESIGN_DECISIONS.md
+ASSET_*.md
+ARCHITECTURE_GUIDE.md

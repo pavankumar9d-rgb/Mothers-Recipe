@@ -37,7 +37,10 @@ export function ProductShowcaseScene({
         const mobile = window.innerWidth < 701;
         jar.current.style.transform = `translate(-50%,${reduced ? 0 : -arrive * height * (mobile ? 0.45 : 0.57)}px)`;
       }
-      turn.current?.turn(reduced ? 0 : spin * Math.PI * 2);
+
+      // Dynamic 3D presentation: subtle physical tilt on entrance, full 360 rotation on scroll
+      const entranceTilt = (1 - arrive) * -0.32;
+      turn.current?.turn(reduced ? 0 : entranceTilt + spin * Math.PI * 2);
 
       if (title.current && !reduced) {
         title.current.style.opacity = String(1 - arrive);

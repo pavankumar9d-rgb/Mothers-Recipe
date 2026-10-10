@@ -62,7 +62,7 @@ export function ShowcaseCarouselStage({
         const y = Math.min(distance, 2.8) * (mobile ? 35 : 47) + Math.sin(offset * 1.2) * 22;
         const scale = Math.max(0.54, 1 - distance * 0.17);
 
-        el.style.transform = `translate(-50%,-50%) translate3d(${x}px,${y}px,0) rotate(${offset * 13}deg) scale(${scale})`;
+        el.style.transform = `translate(-50%,-50%) translate3d(${x}px,${y}px,0) rotateY(${offset * -18}deg) rotateZ(${offset * 7}deg) scale(${scale})`;
         el.style.zIndex = String(10 - Math.round(distance));
         el.style.opacity = String(Math.max(0, Math.min(1, 3 - distance)));
         el.style.visibility = distance > (mobile ? 1.6 : 2.7) ? 'hidden' : 'visible';
@@ -160,13 +160,48 @@ export function ShowcaseCarouselStage({
       <div className="carousel-mound" aria-hidden="true">
         <svg viewBox="0 0 1000 1000">
           <defs>
-            <path id="brand-arc" d="M150 420 A360 360 0 0 1 850 420" />
+            <radialGradient id="stage-aura" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#C8601E" stopOpacity="0.28" />
+              <stop offset="55%" stopColor="#8F1D2C" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#8F1D2C" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="crest-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8F1D2C" />
+              <stop offset="50%" stopColor="#6E121E" />
+              <stop offset="100%" stopColor="#4A0A12" />
+            </linearGradient>
+            <linearGradient id="gold-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F5D48B" stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#D4A359" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#9E6C28" stopOpacity="0.4" />
+            </linearGradient>
+            <filter id="mound-shadow" x="-15%" y="-15%" width="130%" height="130%">
+              <feDropShadow dx="0" dy="18" stdDeviation="24" floodColor="#26100B" floodOpacity="0.22" />
+            </filter>
+            {/* Downward parabola brand arc (smile curve) */}
+            <path id="brand-arc" d="M 110 390 Q 500 790 890 390" />
           </defs>
+
+          {/* Ambient warm spice aura glow */}
+          <circle cx="500" cy="500" r="470" fill="url(#stage-aura)" />
+
           <g ref={backdrop}>
-            <path ref={contour} className="mound-fill" d={blobPath(500, 500, 440, 0)} />
-            <text>
+            {/* Main sculpted organic crest */}
+            <path
+              ref={contour}
+              className="mound-fill"
+              d={blobPath(500, 500, 440, 0)}
+              fill="url(#crest-gradient)"
+              filter="url(#mound-shadow)"
+            />
+            {/* Delicate golden accent downward parabola arcs */}
+            <path d="M 110 360 Q 500 760 890 360" fill="none" stroke="url(#gold-stroke)" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.65" />
+            <path d="M 110 420 Q 500 820 890 420" fill="none" stroke="url(#gold-stroke)" strokeWidth="0.75" opacity="0.35" />
+
+            {/* Downward parabolic heritage branding text */}
+            <text className="mound-arc-text">
               <textPath href="#brand-arc" startOffset="50%" textAnchor="middle">
-                TASTE THE TRADITION
+                ✦ TASTE THE TRADITION · MOTHER&apos;S RECIPE · SINCE 1962 ✦
               </textPath>
             </text>
           </g>

@@ -56,8 +56,10 @@ export function ShowcaseIntro({ product, onDone }: { product: ShowcaseProduct; o
     const frame = (now: number) => {
       const t = now - start;
       discPath.current?.setAttribute('d', blobPath(500, 500, 430, t / 520));
-      turn.current?.turn(ease(clamp((t - 950) / 1500)) * Math.PI * 2);
-      if (t < 3000) raf = requestAnimationFrame(frame);
+      // Start rotating smoothly as packet enters and completes full 3D rotation
+      const progress = clamp((t - 450) / 1950);
+      turn.current?.turn(ease(progress) * (Math.PI * 2));
+      if (t < 3200) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
@@ -146,7 +148,15 @@ export function ShowcaseIntro({ product, onDone }: { product: ShowcaseProduct; o
     <div ref={root} className="intro" role="presentation">
       <div ref={curtain} className="intro-curtain">
         <svg ref={disc} className="intro-disc" viewBox="0 0 1000 1000" aria-hidden="true">
-          <path ref={discPath} d={blobPath(500, 500, 430, 0)} />
+          <defs>
+            <radialGradient id="intro-disc-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#8F1D2C" />
+              <stop offset="70%" stopColor="#6E121E" />
+              <stop offset="100%" stopColor="#450810" />
+            </radialGradient>
+          </defs>
+          <path ref={discPath} fill="url(#intro-disc-glow)" d={blobPath(500, 500, 430, 0)} />
+          <circle cx="500" cy="500" r="410" fill="none" stroke="#D4A359" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.6" />
         </svg>
         <div ref={jar} className="intro-jar">
           <ShowcaseProductTurn ref={turn} product={product} />

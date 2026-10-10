@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play } from 'lucide-react';
+import { Pause, Play, ArrowLeft, ArrowRight } from 'lucide-react';
 import { SHOWCASE_PRODUCTS, type ShowcaseProduct } from '../../data/showcaseProducts';
 import { ArrowUpRight } from './ShowcaseMenuDrawer';
 import { assetUrl } from '../../utils/paths';
 
-const COPIES = 4;
-const REAL = 1;
-const CRUISE = 0.05;
-const CRAWL = 0.012;
+const mod = (n: number, length: number) => ((n % length) + length) % length;
 
 export function FlavourStreamMarquee({
   current,
@@ -18,179 +15,197 @@ export function FlavourStreamMarquee({
   onOpen: (product: ShowcaseProduct) => void;
   reduced: boolean;
 }) {
-  const viewport = useRef<HTMLDivElement>(null);
-  const track = useRef<HTMLDivElement>(null);
-  const offset = useRef<number | null>(null);
-  const slow = useRef(false);
-  const held = useRef(false);
-  const stopped = useRef(false);
-  const drag = useRef<{ x: number; from: number; moved: boolean } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const cursor = useRef(0);
+  const target = useRef(0);
+  const dragging = useRef<{ start: number; offset: number; moved: boolean } | null>(null);
+  const hover = useRef(false);
   const [playing, setPlaying] = useState(true);
+  const idleUntil = useRef(0);
+
+  // Set initial focus near current product
+  useEffect(() => {
+    const idx = SHOWCASE_PRODUCTS.findIndex((p) => p.id === current);
+    if (idx !== -1) {
+      cursor.current = idx;
+      target.current = idx;
+    }
+  }, [current]);
 
   useEffect(() => {
-    const view = viewport.current;
-    const row = track.current;
-    if (!view || !row) return;
+    const stage = stageRef.current;
+    if (!stage) return;
 
     let raf = 0;
-    let previous = 0;
-    let speed = 0;
-    let visible = false;
-    let loop = 0;
-    let inset = 0;
+    let previous = performance.now();
+    const count = SHOWCASE_PRODUCTS.length;
 
-    const measure = () => {
-      const firstChild = row.children[0] as HTMLElement | undefined;
-      const realChild = row.children[REAL * SHOWCASE_PRODUCTS.length] as HTMLElement | undefined;
-      if (firstChild && realChild) {
-        loop = realChild.getBoundingClientRect().left - firstChild.getBoundingClientRect().left;
-      }
-      inset = view.clientWidth * 0.05;
-    };
-
-    const tick = (now: number) => {
-      const dt = previous ? Math.min(now - previous, 50) : 16;
+    const animate = (now: number) => {
+      const dt = Math.min(now - previous, 40);
       previous = now;
-      const goal = reduced || stopped.current || held.current || drag.current ? 0 : slow.current ? CRAWL : CRUISE;
-      speed += (goal - speed) * (1 - Math.exp(-dt / 280));
-      offset.current ??= inset - REAL * loop;
-      if (!drag.current) offset.current -= speed * dt;
 
-      const base = inset - REAL * loop;
-      let rel = loop ? (offset.current - base) % loop : 0;
-      if (rel > 0) rel -= loop;
-      offset.current = base + rel;
-      row.style.transform = `translate3d(${offset.current.toFixed(2)}px,0,0)`;
-      raf = visible ? requestAnimationFrame(tick) : 0;
-    };
-
-    const io = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      if (visible && !raf) {
-        previous = 0;
-        raf = requestAnimationFrame(tick);
+      // Auto-cruise when playing and not dragging
+      if (playing && !dragging.current && !reduced && now > idleUntil.current) {
+        target.current += dt * 0.00045 * (hover.current ? 0.35 : 1);
       }
-    });
 
-    const ro = new ResizeObserver(measure);
-    measure();
-    offset.current ??= inset - REAL * loop;
-    row.style.transform = `translate3d(${offset.current}px,0,0)`;
-    ro.observe(view);
-    io.observe(view);
+      // Smooth interpolation toward target
+      cursor.current += (target.current - cursor.current) * (reduced ? 1 : 1 - Math.exp(-dt / 130));
 
-    return () => {
-      io.disconnect();
-      ro.disconnect();
-      cancelAnimationFrame(raf);
+      const width = stage.clientWidth || window.innerWidth;
+      const isMobile = width < 700;
+      const cardSpacing = isMobile ? Math.min(270, width * 0.65) : Math.min(340, width * 0.28);
+      const depthStrength = isMobile ? 85 : 140;
+
+      cardRefs.current.forEach((el, i) => {
+        if (!el) return;
+        // Wrapped distance from virtual center
+        const offset = mod(i - cursor.current + count / 2, count) - count / 2;
+        const dist = Math.abs(offset);
+
+        // 3D Cylindrical Arc Transformation (like Image 4)
+        const tx = offset * cardSpacing;
+        const tz = -dist * depthStrength;
+        const ry = Math.max(-42, Math.min(42, offset * -25)); // Rotate inward toward center
+        const scale = Math.max(0.68, 1 - dist * 0.1);
+        const opacity = Math.max(0, Math.min(1, 2.8 - dist * 0.9));
+        const zIndex = Math.round(50 - dist * 10);
+
+        el.style.transform = `translate(-50%, -50%) translate3d(${tx.toFixed(1)}px, 0, ${tz.toFixed(1)}px) rotateY(${ry.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+        el.style.opacity = opacity.toFixed(3);
+        el.style.zIndex = String(zIndex);
+        el.style.visibility = dist > (isMobile ? 2.2 : 3.4) ? 'hidden' : 'visible';
+      });
+
+      raf = requestAnimationFrame(animate);
     };
-  }, [reduced]);
 
-  const release = () => {
-    if (drag.current) {
-      setTimeout(() => {
-        drag.current = null;
-      }, 0);
-    }
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, reduced]);
+
+  const step = (dir: number) => {
+    idleUntil.current = performance.now() + 4500;
+    target.current = Math.round(target.current) + dir;
   };
 
   const toggle = () => {
-    stopped.current = playing;
     setPlaying(!playing);
   };
 
   return (
-    <>
+    <div className="coverflow-wrapper">
       <div
-        ref={viewport}
-        className="flavour-marquee"
-        onPointerEnter={(e) => {
-          if (e.pointerType === 'mouse') slow.current = true;
+        ref={stageRef}
+        className="coverflow-stage"
+        role="region"
+        aria-label="3D Cylindrical Flavour Gallery"
+        onMouseEnter={() => {
+          hover.current = true;
         }}
-        onPointerLeave={() => {
-          slow.current = false;
-          release();
+        onMouseLeave={() => {
+          hover.current = false;
+          if (dragging.current) {
+            target.current = Math.round(target.current);
+            dragging.current = null;
+          }
         }}
         onPointerDown={(e) => {
-          drag.current = { x: e.clientX, from: offset.current ?? 0, moved: false };
+          dragging.current = { start: e.clientX, offset: target.current, moved: false };
+          idleUntil.current = performance.now() + 5000;
         }}
         onPointerMove={(e) => {
-          const d = drag.current;
-          if (!d) return;
-          if (Math.abs(e.clientX - d.x) > 6) d.moved = true;
-          if (d.moved) offset.current = d.from + e.clientX - d.x;
+          const d = dragging.current;
+          if (d) {
+            const dx = e.clientX - d.start;
+            if (Math.abs(dx) > 6) d.moved = true;
+            const sensitivity = window.innerWidth < 700 ? 0.0035 : 0.0024;
+            target.current = d.offset - dx * sensitivity;
+          }
         }}
-        onPointerUp={release}
-        onPointerCancel={() => {
-          drag.current = null;
-        }}
-        onFocus={() => {
-          held.current = true;
-        }}
-        onBlur={() => {
-          held.current = false;
+        onPointerUp={() => {
+          if (dragging.current) {
+            if (dragging.current.moved) {
+              target.current = Math.round(target.current);
+            }
+            idleUntil.current = performance.now() + 5000;
+            setTimeout(() => {
+              dragging.current = null;
+            }, 0);
+          }
         }}
       >
-        <div ref={track} className="flavour-track">
-          {Array.from({ length: COPIES }, (_, copy) =>
-            SHOWCASE_PRODUCTS.map((product, i) => {
-              const real = copy === REAL;
-              return (
-                <button
-                  key={`${copy}-${product.id}`}
-                  className={`related-product${product.id === current ? ' is-current' : ''}`}
-                  tabIndex={real ? undefined : -1}
-                  aria-hidden={real ? undefined : true}
-                  aria-label={
-                    real ? `${product.name}${product.id === current ? ', now viewing' : ''}` : undefined
-                  }
-                  onClick={() => {
-                    if (!drag.current?.moved) onOpen(product);
-                  }}
-                  onFocus={(e) => {
-                    if (real && viewport.current) {
-                      offset.current = viewport.current.clientWidth * 0.05 - e.currentTarget.offsetLeft;
-                    }
-                  }}
-                >
-                  <div className="related-photo">
-                    <span className="related-number">0{i + 1}</span>
-                    {product.id === current && <span className="related-current">Now viewing</span>}
-                    <div className="related-image">
-                      <img
-                        src={assetUrl(product.image)}
-                        alt={`Mother's Recipe ${product.name} jar`}
-                        draggable="false"
-                        loading="lazy"
-                        onError={(e) => {
-                          if (product.fallbackImage) {
-                            (e.currentTarget as HTMLImageElement).src = assetUrl(product.fallbackImage);
-                          }
-                        }}
-                      />
-                    </div>
-                    <span className="related-plus">
-                      <ArrowUpRight />
-                    </span>
+        <div className="coverflow-track" aria-live="polite">
+          {SHOWCASE_PRODUCTS.map((product, i) => {
+            const isCurrent = product.id === current;
+            return (
+              <button
+                key={product.id}
+                ref={(el) => {
+                  cardRefs.current[i] = el;
+                }}
+                className={`coverflow-card${isCurrent ? ' is-current' : ''}`}
+                aria-label={`Discover ${product.name}${isCurrent ? ' (Currently viewing)' : ''}`}
+                onClick={() => {
+                  if (!dragging.current?.moved) onOpen(product);
+                }}
+              >
+                <div className="coverflow-card-inner">
+                  <div className="card-top-meta">
+                    <span className="card-num">0{i + 1}</span>
+                    {isCurrent && <span className="card-badge-current">NOW VIEWING</span>}
                   </div>
-                  <span className="related-name">{product.name}</span>
-                  <span className="related-kind">{product.kind}</span>
-                </button>
-              );
-            })
-          )}
+
+                  <div className="card-packshot-stage">
+                    <img
+                      src={assetUrl(product.image)}
+                      alt={`Mother's Recipe ${product.name}`}
+                      draggable="false"
+                      loading="lazy"
+                      onError={(e) => {
+                        if (product.fallbackImage) {
+                          (e.currentTarget as HTMLImageElement).src = assetUrl(product.fallbackImage);
+                        }
+                      }}
+                    />
+                    <div className="card-pack-shadow" aria-hidden="true" />
+                  </div>
+
+                  <div className="card-caption">
+                    <h3 className="card-title">{product.name}</h3>
+                    <span className="card-kind">{product.kind}</span>
+                  </div>
+
+                  <span className="card-arrow-pill" aria-hidden="true">
+                    <ArrowUpRight />
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="flavour-controls">
-        <span>DRAG OR SWIPE TO EXPLORE</span>
+      <div className="coverflow-controls">
+        <button className="coverflow-nav-btn" onClick={() => step(-1)} aria-label="Previous flavour">
+          <ArrowLeft size={16} />
+        </button>
+
+        <span className="coverflow-hint">DRAG OR SWIPE TO EXPLORE 3D PANTRY</span>
+
         <button
+          className="coverflow-play-btn"
           onClick={toggle}
-          aria-label={playing ? 'Pause the flavours' : 'Play the flavours'}
+          aria-label={playing ? 'Pause 3D carousel' : 'Play 3D carousel'}
         >
-          {playing ? <Pause size={11} fill="currentColor" /> : <Play size={11} fill="currentColor" />}
+          {playing ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+        </button>
+
+        <button className="coverflow-nav-btn" onClick={() => step(1)} aria-label="Next flavour">
+          <ArrowRight size={16} />
         </button>
       </div>
-    </>
+    </div>
   );
 }
