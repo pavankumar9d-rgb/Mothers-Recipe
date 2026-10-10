@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
 make_product_cutouts.py
-Generates clean RGBA transparent cutouts with genuine alpha channels from authentic
-Mother's Recipe front-packshot images using rembg.
+Extracts and generates clean RGBA transparent cutouts with genuine alpha channels
+for ALL 80 Mother's Recipe catalogue products from authentic front packshots.
+Generates public/assets/data/cutout-report.json with full transparency and dimension audit.
 """
 
 import sys
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import os
 import json
+import time
 from pathlib import Path
 from PIL import Image
 import rembg
@@ -19,43 +21,10 @@ PRODUCTS_ORIGINALS = PUBLIC_ASSETS / "products" / "originals"
 PRODUCTS_CUTOUTS = PUBLIC_ASSETS / "products" / "cutouts"
 DATA_DIR = PUBLIC_ASSETS / "data"
 
-# Prioritize key representative products across diverse regional pickle traditions
-PRIORITY_SLUGS = [
-    "andhra-avakaya-pickle-200-gm",
-    "andhra-gongura-pickle-200-gm",
-    "andhra-tomato-pickle-200-gm",
-    "andhra-ginger-pickle-200-gm",
-    "punjabi-mango-pickle-400-gm",
-    "punjabi-pachranga-pickle-400-gm",
-    "punjabi-mango-pickle-200-gm",
-    "green-chilli-pickle-500-gm",
-    "green-chilli-pickle-200-gm",
-    "stuffed-green-chilli-pickle-200-gm",
-    "stuffed-red-chilli-pickle-200-gm",
-    "mothers-recipe-red-stuffed-chilli-pickle-500gm",
-    "garlic-pickle-200-gm",
-    "garlic-pickle-south-indian-style-200-gm",
-    "sweet-lime-pickle-200-gm",
-    "lime-pickle-200-gm",
-    "lime-chilli-pickle-200-gm",
-    "gujarati-choondo-pickle-200-gm",
-    "gujarati-gorkeri-pickle-200-gm",
-    "mothers-recipe-mixed-pickle-400-gm",
-    "mixed-pickle-200-gm",
-    "mixed-pickle-south-indian-style-200-gm",
-    "mothers-recipe-tomato-pickle-400gm",
-    "tomato-pickle-with-garlic-300-gm",
-    "ginger-pickle-300-gm",
-    "karnataka-cut-mango-pickle-200-gm",
-    "madras-thokku-pickle-200-gm",
-    "crushed-mixed-pickle-300gm",
-]
-
-def trim_transparent(image, padding=25):
+def trim_transparent(image, padding=20):
     """Trims outer fully transparent pixels while leaving a clean padding border."""
     bbox = image.getbbox()
     if bbox:
-        # Expand bbox by padding within original image bounds
         left = max(0, bbox[0] - padding)
         top = max(0, bbox[1] - padding)
         right = min(image.width, bbox[2] + padding)
@@ -63,8 +32,17 @@ def trim_transparent(image, padding=25):
         return image.crop((left, top, right, bottom))
     return image
 
+def check_has_alpha(im):
+    """Returns True if the image has genuine non-binary alpha transparency."""
+    if im.mode in ('RGBA', 'LA'):
+        alpha = im.split()[-1]
+        extrema = alpha.getextrema()
+        return extrema[0] < 255
+    return False
+
 def main():
     PRODUCTS_CUTOUTS.mkdir(parents=True, exist_ok=True)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     
     products_file = DATA_DIR / "products.json"
     if not products_file.exists():
@@ -74,89 +52,139 @@ def main():
     with open(products_file, "r", encoding="utf-8") as f:
         products = json.load(f)
         
-    print(f"Loaded {len(products)} products from products.json.")
+    total_products = len(products)
+    print(f"Loaded {total_products} products from products.json.")
+    print(f"Beginning full-coverage transparent cutout pipeline...")
     
-    # Map products by slug
-    prod_map = {p["slug"]: p for p in products}
-    
-    # Determine target list
-    target_slugs = []
-    for s in PRIORITY_SLUGS:
-        if s in prod_map:
-            target_slugs.append(s)
-            
-    # If fewer than 25, add others that have front images
-    for p in products:
-        if len(target_slugs) >= 25:
-            break
-        if p["slug"] not in target_slugs:
-            target_slugs.append(p["slug"])
-            
-    print(f"Targeting {len(target_slugs)} products for transparent cutout generation...")
-    
-    # Initialize rembg session once to avoid reloading model weights
+    # Initialize rembg session once
     session = rembg.new_session()
     
-    successful_cutouts = []
+    report = []
+    success_count = 0
+    skipped_existing = 0
+    fail_count = 0
+    start_time = time.time()
     
-    for idx, slug in enumerate(target_slugs):
-        prod = prod_map[slug]
-        slug_dir = PRODUCTS_ORIGINALS / slug
-        if not slug_dir.exists():
-            continue
-            
-        # Find front original image
-        front_img = None
-        for file in slug_dir.iterdir():
-            if "front" in file.name.lower() or "page1" in file.name.lower():
-                front_img = file
-                break
-        if not front_img:
-            # Pick first image
-            imgs = list(slug_dir.iterdir())
-            if imgs:
-                front_img = imgs[0]
-                
-        if not front_img:
-            print(f"  [{idx+1}/{len(target_slugs)}] No image found for {slug}")
-            continue
-            
-        out_png_path = PRODUCTS_CUTOUTS / f"{slug}.png"
+    for idx, prod in enumerate(products, 1):
+        slug = prod.get("slug", "")
+        title = prod.get("title", slug)
+        out_png = PRODUCTS_CUTOUTS / f"{slug}.png"
         
-        # Check if already processed and valid
-        if out_png_path.exists() and out_png_path.stat().st_size > 5000:
-            print(f"  [{idx+1}/{len(target_slugs)}] [EXISTS] {slug}.png ({out_png_path.stat().st_size} bytes)")
-            successful_cutouts.append({
+        # Determine verified front image from product images metadata
+        front_img_path = None
+        for img in prod.get("images", []):
+            if img.get("role") == "front" or img.get("isHeroCandidate"):
+                candidate = BASE_DIR / "public" / img.get("localPath", "")
+                if candidate.exists() and candidate.stat().st_size > 1000:
+                    front_img_path = candidate
+                    break
+                    
+        # Fallback to scanning product original directory if not found in metadata
+        if not front_img_path:
+            slug_dir = PRODUCTS_ORIGINALS / slug
+            if slug_dir.exists():
+                for f in slug_dir.iterdir():
+                    if "front" in f.name.lower() or "page1" in f.name.lower():
+                        front_img_path = f
+                        break
+                if not front_img_path:
+                    files = list(slug_dir.iterdir())
+                    if files:
+                        front_img_path = files[0]
+                        
+        if not front_img_path or not front_img_path.exists():
+            print(f"  [{idx}/{total_products}] [NO_SOURCE] {slug}: No valid front packshot found.", flush=True)
+            report.append({
                 "slug": slug,
-                "path": str(out_png_path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "size": out_png_path.stat().st_size
+                "title": title,
+                "sourcePath": None,
+                "cutoutPath": None,
+                "status": "FAILED_MISSING_SOURCE",
+                "hasAlpha": False,
+                "dimensions": None,
+                "fileSizeBytes": 0,
+                "error": "No front packshot file found in originals"
             })
+            fail_count += 1
             continue
             
-        print(f"  [{idx+1}/{len(target_slugs)}] Processing {slug} from {front_img.name}...")
-        try:
-            with Image.open(front_img) as orig_im:
-                orig_im = orig_im.convert("RGB")
-                cutout = rembg.remove(orig_im, session=session)
-                # Trim extra empty border
-                trimmed = trim_transparent(cutout, padding=25)
-                # Save with maximum PNG compression
-                trimmed.save(out_png_path, "PNG", optimize=True)
+        # Check if already processed and has genuine alpha
+        if out_png.exists() and out_png.stat().st_size > 5000:
+            try:
+                with Image.open(out_png) as existing_im:
+                    if check_has_alpha(existing_im):
+                        print(f"  [{idx}/{total_products}] [EXISTS] {slug}.png ({existing_im.width}x{existing_im.height}, {out_png.stat().st_size} bytes)", flush=True)
+                        report.append({
+                            "slug": slug,
+                            "title": title,
+                            "sourcePath": str(front_img_path.relative_to(BASE_DIR)).replace("\\", "/"),
+                            "cutoutPath": str(out_png.relative_to(BASE_DIR)).replace("\\", "/"),
+                            "status": "SUCCESS_EXISTING",
+                            "hasAlpha": True,
+                            "dimensions": [existing_im.width, existing_im.height],
+                            "fileSizeBytes": out_png.stat().st_size,
+                            "error": None
+                        })
+                        skipped_existing += 1
+                        success_count += 1
+                        continue
+            except Exception:
+                pass # Re-generate if corrupted
                 
-            w, h = trimmed.size
-            file_size = out_png_path.stat().st_size
-            print(f"    -> [OK] Saved {slug}.png ({w}x{h}, {file_size} bytes, mode={trimmed.mode})")
-            
-            successful_cutouts.append({
+        print(f"  [{idx}/{total_products}] Processing {slug} from {front_img_path.name}...", flush=True)
+        try:
+            with Image.open(front_img_path) as orig_im:
+                orig_im = orig_im.convert("RGB")
+                # Scale down for fast CPU segmentation if large
+                if max(orig_im.size) > 800:
+                    orig_im.thumbnail((800, 800), Image.Resampling.LANCZOS)
+                
+                cutout = rembg.remove(orig_im, session=session)
+                trimmed = trim_transparent(cutout, padding=20)
+                trimmed.save(out_png, "PNG", optimize=True)
+                
+            has_alpha = check_has_alpha(trimmed)
+            report.append({
                 "slug": slug,
-                "path": str(out_png_path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "size": file_size,
-                "dimensions": [w, h]
+                "title": title,
+                "sourcePath": str(front_img_path.relative_to(BASE_DIR)).replace("\\", "/"),
+                "cutoutPath": str(out_png.relative_to(BASE_DIR)).replace("\\", "/"),
+                "status": "SUCCESS" if has_alpha else "WARNING_NO_ALPHA",
+                "hasAlpha": has_alpha,
+                "dimensions": [trimmed.width, trimmed.height],
+                "fileSizeBytes": out_png.stat().st_size,
+                "error": None
             })
+            success_count += 1
+            print(f"    -> [OK] Saved {slug}.png ({trimmed.width}x{trimmed.height}, {out_png.stat().st_size} bytes, alpha={has_alpha})", flush=True)
         except Exception as e:
-            print(f"    -> [FAIL] Error processing {slug}: {e}")
-            
-    print(f"\n[SUMMARY] Successfully created {len(successful_cutouts)} transparent product cutouts in {PRODUCTS_CUTOUTS}")
+            print(f"    -> [FAIL] {slug}: {e}", flush=True)
+            report.append({
+                "slug": slug,
+                "title": title,
+                "sourcePath": str(front_img_path.relative_to(BASE_DIR)).replace("\\", "/"),
+                "cutoutPath": None,
+                "status": "FAILED_PROCESSING_ERROR",
+                "hasAlpha": False,
+                "dimensions": None,
+                "fileSizeBytes": 0,
+                "error": str(e)
+            })
+            fail_count += 1
+
+    # Save persistent cutout report
+    report_file = DATA_DIR / "cutout-report.json"
+    with open(report_file, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+        
+    duration = time.time() - start_time
+    print("\n" + "=" * 70)
+    print(f"PRODUCT CUTOUT SUMMARY REPORT (Duration: {duration:.1f}s)")
+    print(f"Total Products:           {total_products}")
+    print(f"Successful Cutouts:       {success_count} ({skipped_existing} existing, {success_count - skipped_existing} new)")
+    print(f"Failed / Missing Source:  {fail_count}")
+    print(f"Report Saved To:          {report_file}")
+    print("=" * 70)
 
 if __name__ == "__main__":
     main()

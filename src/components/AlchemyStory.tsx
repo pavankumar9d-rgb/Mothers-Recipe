@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ALCHEMY_STEPS } from '../data/curatedData';
-import { Sun, ArrowRight } from 'lucide-react';
+import { assetUrl } from '../utils/paths';
+import { Sparkles, ArrowRight } from 'lucide-react';
 
 export const AlchemyStory: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -14,24 +15,24 @@ export const AlchemyStory: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="badge-tag badge-forest">
-                Pantry to Plate Craft
+                Craft & Heritage
               </span>
               <span className="text-xs font-mono text-[var(--text-muted)]">
-                Artisanal Methodology
+                Culinary Methodology
               </span>
             </div>
             <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--earth-dark)]">
               The Alchemy of Achaar
             </h2>
             <p className="text-sm sm:text-base text-[var(--earth-muted)] max-w-xl mt-2 font-sans">
-              Indian pickling is an ancient biochemistry of sun, salt, and cold-pressed oil.
-              Follow the four sacred stages of Mother’s Recipe traditional preparation.
+              Indian pickling is a delicate balance of sun, unrefined salt, and cold-pressed oil.
+              Discover four time-honoured stages of regional pickle craft.
             </p>
           </div>
 
           <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--text-muted)] bg-white px-4 py-2 rounded-full border border-[var(--border-medium)]">
-            <Sun className="w-4 h-4 text-amber-500 animate-spin-slow" />
-            <span>21-Day Solar Curing Protocol</span>
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>Time-Honoured Maturation Craft</span>
           </div>
         </div>
 
@@ -121,7 +122,7 @@ export const AlchemyStory: React.FC = () => {
           <div className="lg:col-span-5 relative rounded-2xl overflow-hidden min-h-[320px] sm:min-h-[380px] shadow-lg border border-[var(--border-medium)]">
             <img
               key={current.step}
-              src={current.texture}
+              src={assetUrl(current.texture)}
               alt={current.title}
               className="absolute inset-0 w-full h-full object-cover transition-all duration-700 hover:scale-105"
             />

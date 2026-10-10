@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Compass, Sparkles, BookOpen, Menu, X, ArrowUpRight } from 'lucide-react';
+import { assetUrl } from '../utils/paths';
+import { Search, Compass, Sparkles, Menu, X, ArrowUpRight, Utensils } from 'lucide-react';
 
 interface HeaderProps {
   onSearchClick: () => void;
@@ -10,55 +11,55 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick, activeCount }) =>
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[var(--border-light)] transition-all">
+    <header className="sticky top-0 z-50 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[var(--border-light)] transition-all">
       <div className="container flex items-center justify-between h-20">
         {/* Brand / Logo */}
         <div className="flex items-center gap-4">
           <a href="#" className="flex items-center gap-3 group text-decoration-none" aria-label="Mother's Recipe Home">
             <img
-              src="/assets/brand/logo/mothers-recipe-logo.svg"
+              src={assetUrl('/assets/brand/logo/mothers-recipe-logo.svg')}
               alt="Mother's Recipe Official Brandmark"
-              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-10 sm:h-12 w-auto object-contain transition-transform group-hover:scale-102"
             />
             <div className="hidden sm:flex flex-col border-l border-[var(--border-medium)] pl-3">
               <span className="font-serif text-xs font-semibold tracking-wider text-[var(--brand-forest)] uppercase">
                 The Living Pantry
               </span>
               <span className="text-[10px] text-[var(--text-muted)] font-mono tracking-tight">
-                Authentic Indian Achaar • Since 1979
+                Authentic Indian Achaar
               </span>
             </div>
           </a>
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-8 font-medium text-sm text-[var(--earth-muted)]" aria-label="Primary Navigation">
+        <nav className="hidden lg:flex items-center gap-7 font-medium text-sm text-[var(--earth-muted)]" aria-label="Primary Navigation">
           <a
             href="#hero"
-            className="hover:text-[var(--spice-red)] transition-colors py-1 relative"
+            className="hover:text-[var(--spice-red)] transition-colors py-1"
           >
-            The Living Pantry
+            Pantry
+          </a>
+          <a
+            href="#pantry-to-plate"
+            className="hover:text-[var(--spice-red)] transition-colors py-1 flex items-center gap-1.5"
+          >
+            <Utensils className="w-3.5 h-3.5 text-[var(--mustard-gold)]" />
+            <span>Pantry to Plate</span>
           </a>
           <a
             href="#specimens"
             className="hover:text-[var(--spice-red)] transition-colors py-1 flex items-center gap-1.5"
           >
-            <Compass className="w-4 h-4 text-[var(--mustard-gold)]" />
-            Specimen Drawer
+            <Compass className="w-3.5 h-3.5 text-[var(--mustard-gold)]" />
+            <span>Regional Drawer</span>
           </a>
           <a
             href="#build-your-bite"
             className="hover:text-[var(--spice-red)] transition-colors py-1 flex items-center gap-1.5"
           >
-            <Sparkles className="w-4 h-4 text-[var(--spice-red)]" />
-            Build Your Bite
-          </a>
-          <a
-            href="#alchemy"
-            className="hover:text-[var(--spice-red)] transition-colors py-1 flex items-center gap-1.5"
-          >
-            <BookOpen className="w-4 h-4 text-[var(--brand-forest)]" />
-            The Alchemy
+            <Sparkles className="w-3.5 h-3.5 text-[var(--spice-red)]" />
+            <span>Build Your Bite</span>
           </a>
           <a
             href="#archive"
@@ -73,21 +74,18 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick, activeCount }) =>
           <button
             onClick={onSearchClick}
             type="button"
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium bg-white rounded-full border border-[var(--border-medium)] shadow-sm text-[var(--earth-dark)] hover:border-[var(--mustard-gold)] hover:bg-[var(--surface-tinted)] transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium bg-white rounded-full border border-[var(--border-medium)] shadow-xs text-[var(--earth-dark)] hover:border-[var(--mustard-gold)] hover:bg-[var(--surface-tinted)] transition-all cursor-pointer"
             aria-label="Search all authentic pickles"
           >
             <Search className="w-3.5 h-3.5 text-[var(--mustard-gold)]" />
             <span className="hidden sm:inline">Search Pickles</span>
-            <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-stone-100 rounded text-stone-500 border border-stone-200">
-              /
-            </kbd>
           </button>
 
           <a
             href="https://www.mothersrecipe.com/collections/pickle"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-[var(--brand-forest)] text-white rounded-full hover:bg-[var(--brand-forest-dark)] transition-all shadow-sm"
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-[var(--brand-forest)] text-white rounded-full hover:bg-[var(--brand-forest-dark)] transition-all shadow-xs"
           >
             <span>Official Store</span>
             <ArrowUpRight className="w-3.5 h-3.5 opacity-80" />
@@ -97,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick, activeCount }) =>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg text-[var(--earth-dark)] hover:bg-[var(--surface-parchment)] transition-colors"
+            className="lg:hidden p-2 rounded-lg text-[var(--earth-dark)] hover:bg-[var(--surface-parchment)] transition-colors cursor-pointer"
             aria-label="Toggle Navigation Menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -113,49 +111,49 @@ export const Header: React.FC<HeaderProps> = ({ onSearchClick, activeCount }) =>
             <a
               href="#hero"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-2"
+              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-1.5"
             >
               The Living Pantry
             </a>
             <a
+              href="#pantry-to-plate"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-1.5 flex items-center gap-2"
+            >
+              <Utensils className="w-4 h-4 text-[var(--mustard-gold)]" />
+              Pantry to Plate
+            </a>
+            <a
               href="#specimens"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-2 flex items-center gap-2"
+              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-1.5 flex items-center gap-2"
             >
               <Compass className="w-4 h-4 text-[var(--mustard-gold)]" />
-              Flavour Specimen Drawer
+              Regional Flavour Drawer
             </a>
             <a
               href="#build-your-bite"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-2 flex items-center gap-2"
+              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-1.5 flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4 text-[var(--spice-red)]" />
-              Build Your Bite (Interactive Lab)
-            </a>
-            <a
-              href="#alchemy"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-2 flex items-center gap-2"
-            >
-              <BookOpen className="w-4 h-4 text-[var(--brand-forest)]" />
-              The Alchemy of Achaar
+              Build Your Bite
             </a>
             <a
               href="#archive"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-2"
+              className="text-[var(--earth-dark)] hover:text-[var(--spice-red)] py-1.5"
             >
-              The Grand Pantry Archive ({activeCount} Variants)
+              Catalogue Archive ({activeCount} Variants)
             </a>
-            <div className="pt-4 border-t border-[var(--border-light)] flex gap-3">
+            <div className="pt-4 border-t border-[var(--border-light)]">
               <a
                 href="https://www.mothersrecipe.com/collections/pickle"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full text-center py-3 bg-[var(--brand-forest)] text-white font-medium text-sm rounded-lg"
+                className="block text-center py-2.5 bg-[var(--brand-forest)] text-white font-medium text-sm rounded-lg"
               >
-                Visit Official Mother’s Recipe Store
+                Official Mother’s Recipe Store
               </a>
             </div>
           </nav>

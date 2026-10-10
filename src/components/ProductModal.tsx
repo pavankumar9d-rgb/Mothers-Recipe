@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Product } from '../types';
+import { assetUrl } from '../utils/paths';
 import {
   X,
   ExternalLink,
@@ -39,13 +40,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) 
 
   if (!product) return null;
 
-  const cutout = product.cutoutPath || `/assets/products/cutouts/${product.slug}.png`;
+  const cutout = assetUrl(product.cutoutPath || `/assets/products/cutouts/${product.slug}.png`);
   const gallery = product.images || [];
 
   // Determine active view image
   const activeImage =
     gallery[selectedImageIndex]?.localPath
-      ? `/${gallery[selectedImageIndex].localPath}`
+      ? assetUrl(`/${gallery[selectedImageIndex].localPath}`)
       : cutout;
 
   return (
@@ -121,7 +122,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) 
                       }`}
                     >
                       <img
-                        src={`/${img.localPath}`}
+                        src={assetUrl(`/${img.localPath}`)}
                         alt={`View ${idx + 1}`}
                         className="w-full h-full object-contain"
                       />

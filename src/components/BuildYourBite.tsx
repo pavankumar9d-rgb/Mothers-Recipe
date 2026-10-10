@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { MEAL_BASES, PALATE_PROFILES, BITE_PAIRINGS } from '../data/curatedData';
 import { Product } from '../types';
+import { assetUrl } from '../utils/paths';
 import {
   Sparkles,
   Flame,
   Shuffle,
+  RotateCcw,
   ExternalLink,
   Soup,
   CheckCircle2,
@@ -39,6 +41,12 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
   const selectedPalate =
     PALATE_PROFILES.find((p) => p.id === selectedPalateId) || PALATE_PROFILES[0];
 
+  // Reset to default comfort pairing
+  const handleReset = () => {
+    setSelectedMealId('rice-ghee');
+    setSelectedPalateId('fiery-pungent');
+  };
+
   // Randomize / Chef's Surprise
   const handleRandomize = () => {
     const randomMeal =
@@ -49,9 +57,14 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
     setSelectedPalateId(randomPalate.id);
   };
 
-  const jarCutout =
+  const jarCutout = assetUrl(
     matchedProduct?.cutoutPath ||
-    `/assets/products/cutouts/${currentPairing.productSlug}.png`;
+    `/assets/products/cutouts/${currentPairing.productSlug}.png`
+  );
+
+  const fallbackJar = matchedProduct?.images && matchedProduct.images[0]?.localPath
+    ? assetUrl(`/${matchedProduct.images[0].localPath}`)
+    : assetUrl('/assets/products/cutouts/andhra-avakaya-pickle-200-gm.png');
 
   return (
     <section
@@ -185,8 +198,17 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
                 })}
               </div>
 
-              {/* Surprise Button */}
-              <div className="mt-4 pt-4 border-t border-[var(--border-light)] flex justify-end">
+              {/* Surprise & Reset Buttons */}
+              <div className="mt-4 pt-4 border-t border-[var(--border-light)] flex items-center justify-between">
+                <button
+                  onClick={handleReset}
+                  type="button"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[var(--earth-muted)] hover:text-[var(--earth-dark)] transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Default</span>
+                </button>
+
                 <button
                   onClick={handleRandomize}
                   type="button"
@@ -203,18 +225,18 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
           {/* Live Pairing Canvas Column (7 cols) */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-8 border border-[var(--border-medium)] shadow-xl relative overflow-hidden">
             
-            {/* Top pairing badge */}
+            {/* Top pairing header */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-[var(--border-light)]">
               <div className="flex items-center gap-2">
                 <span className="badge-tag badge-forest">
-                  Verified Culinary Match
+                  Culinary Match
                 </span>
                 <span className="text-xs font-mono text-[var(--text-muted)]">
                   {selectedMeal.name} + {selectedPalate.name}
                 </span>
               </div>
-              <span className="text-xs font-mono text-[var(--mustard-gold-hover)] font-bold">
-                Pairing Code: #{selectedMealId.slice(0, 3).toUpperCase()}-{selectedPalateId.slice(0, 3).toUpperCase()}
+              <span className="text-xs font-serif italic text-[var(--earth-muted)]">
+                Hand-balanced for warmth & acidity
               </span>
             </div>
 
@@ -222,7 +244,7 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
             <div className="relative my-6 rounded-2xl overflow-hidden bg-stone-900 border border-[var(--border-light)] min-h-[300px] sm:min-h-[340px] flex items-center justify-center">
               {/* Background food serving photograph */}
               <img
-                src={currentPairing.servingImage}
+                src={assetUrl(currentPairing.servingImage)}
                 alt={currentPairing.dishName}
                 className="absolute inset-0 w-full h-full object-cover opacity-60 brightness-95"
               />
@@ -245,6 +267,9 @@ export const BuildYourBite: React.FC<BuildYourBiteProps> = ({
                 <div className="h-44 sm:h-52 flex items-center justify-center filter drop-shadow-[0_16px_25px_rgba(0,0,0,0.6)]">
                   <img
                     src={jarCutout}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = fallbackJar;
+                    }}
                     alt={currentPairing.pickleTitle}
                     className="max-h-full w-auto object-contain transition-transform hover:scale-105 duration-300"
                   />

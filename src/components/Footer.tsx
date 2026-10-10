@@ -1,4 +1,5 @@
 import React from 'react';
+import { assetUrl } from '../utils/paths';
 import { ArrowUp, ArrowUpRight, Shield } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -16,12 +17,12 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-5 flex flex-col items-start">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/assets/brand/logo/mothers-recipe-logo.svg"
+                src={assetUrl('/assets/brand/logo/mothers-recipe-logo.svg')}
                 alt="Mother's Recipe Official Brand Logo"
                 className="h-12 w-auto object-contain bg-white/95 p-1 rounded-md"
               />
               <img
-                src="/assets/brand/logo/mothers-recipe-dfpl-logo.png"
+                src={assetUrl('/assets/brand/logo/mothers-recipe-dfpl-logo.png')}
                 alt="Desai Foods DFPL Seal"
                 className="h-10 w-auto object-contain bg-white/95 p-1 rounded-md"
               />
@@ -48,6 +49,11 @@ export const Footer: React.FC = () => {
               <li>
                 <a href="#hero" className="hover:text-white transition-colors">
                   The Living Pantry Hero
+                </a>
+              </li>
+              <li>
+                <a href="#pantry-to-plate" className="hover:text-white transition-colors">
+                  From Pantry to Plate
                 </a>
               </li>
               <li>

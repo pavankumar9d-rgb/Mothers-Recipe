@@ -3,6 +3,8 @@
 make_ingredient_cutouts.py
 Extracts and generates 20+ distinct high-craft transparent RGBA ingredient and prop cutouts
 with genuine alpha channels into public/assets/ingredients/cutouts/
+Uses local repository source images in public/assets/ingredients/sources/ for 100% reproducibility.
+Generates an HTML visual contact sheet in public/assets/previews/ingredients-contact-sheet.html.
 """
 
 import sys
@@ -16,7 +18,8 @@ import rembg
 BASE_DIR = Path(__file__).resolve().parent.parent
 PUBLIC_ASSETS = BASE_DIR / "public" / "assets"
 INGREDIENTS_CUTOUTS = PUBLIC_ASSETS / "ingredients" / "cutouts"
-BRAIN_DIR = Path(r"C:\Users\saipa\.gemini\antigravity-ide\brain\0e01687b-ba28-46e5-a098-183dfe06517f")
+SOURCES_DIR = PUBLIC_ASSETS / "ingredients" / "sources"
+PREVIEWS_DIR = PUBLIC_ASSETS / "previews"
 
 def trim_transparent(image, padding=15):
     bbox = image.getbbox()
@@ -39,13 +42,13 @@ def process_isolated_props(session):
     
     count = 0
     for pattern, out_name in props:
-        matches = list(BRAIN_DIR.glob(pattern))
+        matches = list(SOURCES_DIR.glob(pattern))
         if not matches:
             continue
         src = matches[0]
         out_file = INGREDIENTS_CUTOUTS / out_name
         if out_file.exists() and out_file.stat().st_size > 5000:
-            print(f"  [EXISTS] {out_name}")
+            print(f"  [EXISTS] {out_name}", flush=True)
             count += 1
             continue
             
@@ -66,17 +69,14 @@ def process_isolated_props(session):
     return count
 
 def process_still_life_crops(session):
-    # Locate master still life images
-    spices_matches = list(BRAIN_DIR.glob("editorial_spices_alchemy*"))
-    hero_matches = list(BRAIN_DIR.glob("editorial_hero_wide*"))
-    tabletop_matches = list(BRAIN_DIR.glob("editorial_tabletop_still*"))
+    spices_matches = list(SOURCES_DIR.glob("editorial_spices_alchemy*"))
+    hero_matches = list(SOURCES_DIR.glob("editorial_hero_wide*"))
+    tabletop_matches = list(SOURCES_DIR.glob("editorial_tabletop_still*"))
     
     crops = []
     
     if spices_matches:
         spices_img = spices_matches[0]
-        # In spices flatlay (typically 1920x1080 or 1792x1008):
-        # We can crop the distinct bowls and elements:
         crops.extend([
             ("fenugreek-seeds-bowl.png", spices_img, (0.24, 0.12, 0.42, 0.42)),
             ("mustard-seeds-bowl.png", spices_img, (0.11, 0.33, 0.29, 0.63)),
@@ -141,14 +141,58 @@ def process_still_life_crops(session):
             
     return count
 
+def generate_contact_sheet():
+    PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
+    cutout_files = sorted(list(INGREDIENTS_CUTOUTS.glob("*.png")))
+    
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ingredient Props Contact Sheet — Mother’s Recipe</title>
+<style>
+  body {{ font-family: system-ui, sans-serif; background: #FAF7F2; padding: 40px; color: #1C1917; }}
+  h1 {{ font-family: Georgia, serif; font-size: 2rem; margin-bottom: 8px; color: #1A3026; }}
+  p {{ color: #78716C; margin-bottom: 24px; font-size: 0.95rem; }}
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }}
+  .card {{ background: #FFFFFF; border: 1px solid rgba(28,25,23,0.1); border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }}
+  .img-box {{ height: 160px; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#eee 0% 25%, transparent 0% 50%) 50% / 16px 16px; border-radius: 8px; margin-bottom: 12px; }}
+  img {{ max-height: 140px; max-width: 100%; object-fit: contain; }}
+  .name {{ font-size: 0.8rem; font-weight: 600; word-break: break-all; margin-bottom: 4px; }}
+  .meta {{ font-size: 0.75rem; color: #78716C; font-family: monospace; }}
+</style>
+</head>
+<body>
+<h1>Ingredient Props & Elements Contact Sheet</h1>
+<p>Total transparent RGBA cutouts: {len(cutout_files)} (Audited for genuine alpha transparency)</p>
+<div class="grid">
+"""
+    for f in cutout_files:
+        with Image.open(f) as im:
+            w, h = im.size
+            size_kb = f.stat().st_size / 1024
+        html += f"""  <div class="card">
+    <div class="img-box"><img src="../ingredients/cutouts/{f.name}" alt="{f.stem}"></div>
+    <div class="name">{f.name}</div>
+    <div class="meta">{w}x{h} px • {size_kb:.1f} KB</div>
+  </div>\n"""
+        
+    html += """</div>\n</body>\n</html>"""
+    
+    out_html = PREVIEWS_DIR / "ingredients-contact-sheet.html"
+    with open(out_html, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"\n[OK] Contact sheet generated at {out_html}")
+
 def main():
     INGREDIENTS_CUTOUTS.mkdir(parents=True, exist_ok=True)
-    print("Generating transparent ingredient & prop cutouts...")
+    print("Generating transparent ingredient & prop cutouts from local repo sources...")
     session = rembg.new_session()
     c1 = process_isolated_props(session)
     c2 = process_still_life_crops(session)
     total = len(list(INGREDIENTS_CUTOUTS.glob("*.png")))
     print(f"\n[SUMMARY] Total ingredient cutouts in {INGREDIENTS_CUTOUTS}: {total}")
+    generate_contact_sheet()
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
+import { assetUrl } from '../utils/paths';
 import {
   Search,
   Grid,
@@ -212,11 +213,12 @@ export const PantryArchive: React.FC<PantryArchiveProps> = ({
         {viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredProducts.map((p) => {
-              const cutout =
-                p.cutoutPath || `/assets/products/cutouts/${p.slug}.png`;
+              const cutout = assetUrl(
+                p.cutoutPath || `/assets/products/cutouts/${p.slug}.png`
+              );
               const fallbackImg =
                 p.images && p.images[0]?.localPath
-                  ? `/${p.images[0].localPath}`
+                  ? assetUrl(`/${p.images[0].localPath}`)
                   : cutout;
 
               return (
@@ -298,11 +300,12 @@ export const PantryArchive: React.FC<PantryArchiveProps> = ({
           /* List View */
           <div className="flex flex-col gap-3">
             {filteredProducts.map((p) => {
-              const cutout =
-                p.cutoutPath || `/assets/products/cutouts/${p.slug}.png`;
+              const cutout = assetUrl(
+                p.cutoutPath || `/assets/products/cutouts/${p.slug}.png`
+              );
               const fallbackImg =
                 p.images && p.images[0]?.localPath
-                  ? `/${p.images[0].localPath}`
+                  ? assetUrl(`/${p.images[0].localPath}`)
                   : cutout;
 
               return (

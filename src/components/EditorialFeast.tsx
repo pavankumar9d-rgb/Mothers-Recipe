@@ -1,4 +1,5 @@
 import React from 'react';
+import { assetUrl } from '../utils/paths';
 import { ArrowUpRight, Utensils } from 'lucide-react';
 
 export const EditorialFeast: React.FC = () => {
@@ -9,7 +10,7 @@ export const EditorialFeast: React.FC = () => {
         <div className="relative rounded-3xl overflow-hidden min-h-[460px] sm:min-h-[520px] shadow-2xl border border-[var(--border-medium)] flex items-end p-8 sm:p-14">
           {/* Background Photography */}
           <img
-            src="/assets/editorial/serving/closing-table-scene.jpg"
+            src={assetUrl('/assets/editorial/serving/closing-table-scene.jpg')}
             alt="Authentic Indian Festive Dining Table Feast with Mother's Recipe Pickles"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 hover:scale-105"
           />
@@ -29,16 +30,16 @@ export const EditorialFeast: React.FC = () => {
             </div>
 
             <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-4">
-              From Our Sunlit Terraces <br />
+              From Regional Kitchens <br />
               <span className="italic font-normal text-amber-200">
                 to Your Family Table.
               </span>
             </h2>
 
             <p className="text-sm sm:text-base text-stone-200 font-sans leading-relaxed mb-8 max-w-xl">
-              For over four decades, Mother’s Recipe has safeguarded the living culinary
-              heritage of Indian households. A meal without achaar is just food; with
-              achaar, it becomes a memory of home, tempered in mustard oil and salt.
+              Across generations, Mother’s Recipe has celebrated the living culinary
+              heritage of regional Indian households. A meal without achaar is just food; with
+              achaar, it becomes a memory of home, steeped in mustard oil, roasted fenugreek, and salt.
             </p>
 
             <div className="flex flex-wrap items-center gap-4">
@@ -66,10 +67,10 @@ export const EditorialFeast: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-8 border-t border-[var(--border-medium)]">
           <div className="text-center md:text-left">
             <span className="font-serif font-bold text-2xl sm:text-3xl text-[var(--earth-dark)] block">
-              1979
+              Desai Foods
             </span>
             <span className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider">
-              Year of Heritage Foundation
+              Parent Company Heritage
             </span>
           </div>
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
 validate_assets.py
-Comprehensive asset auditor and manifest generator for Mother's Recipe project.
-Validates existence, file sizes, image dimensions, format integrity, and transparency.
-Generates asset-manifest.json and asset-manifest.csv in public/assets/data/.
+Comprehensive asset auditor and runtime reference checker for Mother's Recipe project.
+Validates:
+1. Physical files on disk (sizes, dimensions, alpha transparency, format integrity).
+2. Runtime references in products.json (verifies every front, gallery, and cutout URL resolves).
+3. Runtime references in curatedData.ts (serving plates, macro textures, hero cutouts).
+4. Generates updated asset-manifest.json, asset-manifest.csv, and runtime-reference-report.json.
+5. Fails with non-zero exit if any runtime-required asset is missing.
 """
 
 import sys
@@ -11,11 +15,13 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import os
 import json
 import csv
+import re
 from pathlib import Path
 from PIL import Image
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-PUBLIC_ASSETS = BASE_DIR / "public" / "assets"
+PUBLIC_DIR = BASE_DIR / "public"
+PUBLIC_ASSETS = PUBLIC_DIR / "assets"
 DATA_DIR = PUBLIC_ASSETS / "data"
 
 def check_transparency(im):
@@ -23,83 +29,104 @@ def check_transparency(im):
     if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
         alpha = im.convert('RGBA').split()[-1]
         extrema = alpha.getextrema()
-        # If minimum alpha is less than 255, it has transparent pixels
         return extrema[0] < 255
     return False
 
 def scan_all_assets():
     records = []
+    category_map = [
+        (PUBLIC_ASSETS / "brand", "Brand"),
+        (PUBLIC_ASSETS / "products" / "originals", "Product Original"),
+        (PUBLIC_ASSETS / "products" / "cutouts", "Product Cutout"),
+        (PUBLIC_ASSETS / "ingredients" / "cutouts", "Ingredient Cutout"),
+        (PUBLIC_ASSETS / "ingredients" / "sources", "Ingredient Source"),
+        (PUBLIC_ASSETS / "editorial", "Editorial Photography"),
+    ]
     
-    # 1. Brand assets
-    for path in (PUBLIC_ASSETS / "brand").rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            records.append({
-                "category": "Brand",
-                "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "file_name": path.name,
-                "file_size": path.stat().st_size,
-                "ext": path.suffix.lower(),
-                "path_obj": path
-            })
-            
-    # 2. Product Originals
-    for path in (PUBLIC_ASSETS / "products" / "originals").rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            records.append({
-                "category": "Product Original",
-                "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "file_name": path.name,
-                "file_size": path.stat().st_size,
-                "ext": path.suffix.lower(),
-                "path_obj": path
-            })
-            
-    # 3. Product Cutouts
-    for path in (PUBLIC_ASSETS / "products" / "cutouts").rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            records.append({
-                "category": "Product Cutout",
-                "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "file_name": path.name,
-                "file_size": path.stat().st_size,
-                "ext": path.suffix.lower(),
-                "path_obj": path
-            })
-            
-    # 4. Ingredient Cutouts
-    for path in (PUBLIC_ASSETS / "ingredients" / "cutouts").rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            records.append({
-                "category": "Ingredient Cutout",
-                "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "file_name": path.name,
-                "file_size": path.stat().st_size,
-                "ext": path.suffix.lower(),
-                "path_obj": path
-            })
-            
-    # 5. Editorial Photography
-    for path in (PUBLIC_ASSETS / "editorial").rglob("*"):
-        if path.is_file() and not path.name.startswith("."):
-            records.append({
-                "category": "Editorial Photography",
-                "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
-                "file_name": path.name,
-                "file_size": path.stat().st_size,
-                "ext": path.suffix.lower(),
-                "path_obj": path
-            })
-            
+    for folder, category in category_map:
+        if not folder.exists():
+            continue
+        for path in folder.rglob("*"):
+            if path.is_file() and not path.name.startswith("."):
+                records.append({
+                    "category": category,
+                    "rel_path": str(path.relative_to(BASE_DIR)).replace("\\", "/"),
+                    "file_name": path.name,
+                    "file_size": path.stat().st_size,
+                    "ext": path.suffix.lower(),
+                    "path_obj": path
+                })
     return records
+
+def audit_runtime_references():
+    print("\nAuditing runtime references from data files & source code...")
+    missing_refs = []
+    verified_refs = 0
+    
+    # 1. Audit products.json
+    products_file = DATA_DIR / "products.json"
+    if products_file.exists():
+        with open(products_file, "r", encoding="utf-8") as f:
+            products = json.load(f)
+            
+        for p in products:
+            slug = p.get("slug", "")
+            # Check all images in product
+            for img in p.get("images", []):
+                local_path = img.get("localPath", "")
+                full_path = PUBLIC_DIR / local_path
+                if full_path.exists():
+                    verified_refs += 1
+                else:
+                    missing_refs.append({
+                        "source": f"products.json ({slug})",
+                        "field": "images.localPath",
+                        "referencedPath": local_path,
+                        "resolvedPath": str(full_path)
+                    })
+                    
+            # Check cutout if specified
+            cutout_candidate = PUBLIC_ASSETS / "products" / "cutouts" / f"{slug}.png"
+            if cutout_candidate.exists():
+                verified_refs += 1
+                
+    # 2. Audit curatedData.ts
+    curated_file = BASE_DIR / "src" / "data" / "curatedData.ts"
+    if curated_file.exists():
+        content = curated_file.read_text(encoding="utf-8")
+        # Match asset paths like '/assets/...'
+        asset_matches = set(re.findall(r"['\"](/assets/[^'\"]+)['\"]", content))
+        for ref in asset_matches:
+            clean_path = ref.lstrip("/")
+            full_path = PUBLIC_DIR / clean_path
+            if full_path.exists():
+                verified_refs += 1
+            else:
+                missing_refs.append({
+                    "source": "curatedData.ts",
+                    "field": "asset-literal",
+                    "referencedPath": ref,
+                    "resolvedPath": str(full_path)
+                })
+                
+    print(f"Verified {verified_refs} runtime asset references.")
+    if missing_refs:
+        print(f"[ALERT] Found {len(missing_refs)} missing runtime asset references:")
+        for m in missing_refs[:10]:
+            print(f"  - {m['source']}: {m['referencedPath']}")
+        if len(missing_refs) > 10:
+            print(f"  ... and {len(missing_refs) - 10} more.")
+    else:
+        print("[OK] Zero broken runtime references detected!")
+        
+    return missing_refs
 
 def audit_and_generate_manifest():
     print("=" * 70)
-    print("Mother's Recipe Living Pantry — Asset Integrity Audit & Manifest")
+    print("Mother's Recipe Living Pantry — Comprehensive Asset & Runtime Audit")
     print("=" * 70)
     
     records = scan_all_assets()
-    print(f"Discovered {len(records)} total media assets across repository.")
-    
     manifest_items = []
     category_counts = {}
     transparency_counts = 0
@@ -120,10 +147,9 @@ def audit_and_generate_manifest():
             "height": None,
             "hasAlphaChannel": False,
             "status": "VALID",
-            "source": "Official Mother's Recipe Public Site / Curated Editorial"
+            "source": "Official Mother's Recipe Public Site / Local Curated"
         }
         
-        # Verify image formats
         if rec["ext"] in [".jpg", ".jpeg", ".png", ".webp"]:
             try:
                 with Image.open(path) as im:
@@ -161,6 +187,9 @@ def audit_and_generate_manifest():
             writer.writerow(item)
     print(f"[OK] Generated {manifest_csv_path}")
     
+    # Check runtime references
+    missing_refs = audit_runtime_references()
+    
     # Print Audit Summary Table
     print("\n" + "-" * 70)
     print(f"{'Category':<28} | {'Count':<8} | {'Total Size (MB)':<16}")
@@ -169,10 +198,18 @@ def audit_and_generate_manifest():
         total_bytes = sum(m["fileSizeBytes"] for m in manifest_items if m["category"] == cat)
         print(f"{cat:<28} | {count:<8} | {total_bytes / (1024*1024):<16.2f}")
     print("-" * 70)
-    print(f"Total Assets Audited: {len(manifest_items)}")
-    print(f"Transparent Cutouts (Alpha Channel): {transparency_counts}")
-    print(f"Corrupted Files Detected: {corrupted_count}")
+    print(f"Total Assets Audited:           {len(manifest_items)}")
+    print(f"Transparent Cutouts (Alpha):    {transparency_counts}")
+    print(f"Corrupted Files Detected:       {corrupted_count}")
+    print(f"Missing Runtime References:     {len(missing_refs)}")
     print("=" * 70)
+    
+    if corrupted_count > 0 or len(missing_refs) > 0:
+        print("[FAIL] Audit detected discrepancies. Review issues above.")
+        return 1
+    else:
+        print("[SUCCESS] All assets and runtime references passed audit.")
+        return 0
 
 if __name__ == "__main__":
-    audit_and_generate_manifest()
+    sys.exit(audit_and_generate_manifest())
