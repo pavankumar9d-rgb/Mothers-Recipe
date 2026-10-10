@@ -1,0 +1,365 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Mother’s Recipe — The Living Pantry
+   Editorial Culinary Design System & Token Architecture
+   ========================================================================== */
+
+:root {
+  /* Colors */
+  --bg-ivory: #FAF7F2;
+  --surface-parchment: #F3EDE2;
+  --surface-card: #FFFFFF;
+  --surface-tinted: #F9F5EE;
+  
+  --brand-forest: #1A3026;
+  --brand-forest-light: #264638;
+  --brand-forest-dark: #101F18;
+  
+  --spice-red: #B82E1E;
+  --spice-red-hover: #9B2416;
+  --spice-red-light: #FBF1F0;
+  
+  --mustard-gold: #D4972C;
+  --mustard-gold-hover: #B88020;
+  --mustard-gold-light: #FDF8EE;
+  
+  --earth-dark: #1C1917;
+  --earth-muted: #57534E;
+  --text-muted: #78716C;
+  --text-subtle: #A8A29E;
+  
+  --border-light: rgba(28, 25, 23, 0.08);
+  --border-medium: rgba(28, 25, 23, 0.14);
+  --border-accent: rgba(212, 151, 44, 0.35);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.05), 0 1px 2px rgba(28, 25, 23, 0.03);
+  --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.07), 0 2px 4px rgba(28, 25, 23, 0.04);
+  --shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.09), 0 4px 12px rgba(28, 25, 23, 0.05);
+  --shadow-floating: 0 24px 48px rgba(26, 48, 38, 0.16), 0 8px 16px rgba(184, 46, 30, 0.08);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Base Reset & Fonts */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: var(--earth-dark);
+  background-color: var(--bg-ivory);
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--bg-ivory);
+  line-height: 1.6;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+header img {
+  height: 48px;
+  max-height: 48px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
+
+/* Typography Utility Classes */
+.font-serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-sans {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Texture Overlay */
+.paper-grain {
+  background-image: radial-gradient(rgba(28, 25, 23, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Container */
+.container {
+  max-width: 1320px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background-color: var(--spice-red);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--spice-red);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 14px rgba(184, 46, 30, 0.25);
+}
+
+.btn-primary:hover {
+  background-color: var(--spice-red-hover);
+  border-color: var(--spice-red-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(184, 46, 30, 0.32);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background-color: transparent;
+  color: var(--brand-forest);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--brand-forest);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.btn-secondary:hover {
+  background-color: var(--brand-forest);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background-color: var(--mustard-gold);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--mustard-gold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-gold:hover {
+  background-color: var(--mustard-gold-hover);
+  border-color: var(--mustard-gold-hover);
+  transform: translateY(-2px);
+}
+
+/* Badges & Tags */
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+}
+
+.badge-forest {
+  background-color: rgba(26, 48, 38, 0.08);
+  color: var(--brand-forest);
+  border: 1px solid rgba(26, 48, 38, 0.15);
+}
+
+.badge-spice {
+  background-color: var(--spice-red-light);
+  color: var(--spice-red);
+  border: 1px solid rgba(184, 46, 30, 0.2);
+}
+
+.badge-gold {
+  background-color: var(--mustard-gold-light);
+  color: var(--mustard-gold-hover);
+  border: 1px solid var(--border-accent);
+}
+
+/* Floating Prop Keyframes */
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(-2deg);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-float {
+  animation: floatGentle 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 7s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 30s linear infinite;
+}
+
+/* Horizontal Specimen Drawer Scroll */
+.horizontal-scroll-drawer {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 20px 8px 32px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.horizontal-scroll-drawer::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-scroll-drawer::-webkit-scrollbar-track {
+  background: rgba(28, 25, 23, 0.06);
+  border-radius: var(--radius-full);
+}
+
+.horizontal-scroll-drawer::-webkit-scrollbar-thumb {
+  background: var(--mustard-gold);
+  border-radius: var(--radius-full);
+}
+
+.drawer-card {
+  flex: 0 0 340px;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 640px) {
+  .drawer-card {
+    flex: 0 0 280px;
+  }
+}
+
+/* Focus States & Accessibility */
+:focus-visible {
+  outline: 3px solid var(--mustard-gold);
+  outline-offset: 3px;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-float, .animate-float-reverse, .animate-spin-slow {
+    animation: none !important;
+  }
+}
+
+/* Modal Overlay */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(16, 31, 24, 0.65);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 200ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+.modal-content {
+  background-color: #FFFFFF;
+  border-radius: var(--radius-lg);
+  max-width: 960px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-floating);
+  animation: slideUp 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--border-medium);
+}
